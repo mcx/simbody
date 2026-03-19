@@ -515,6 +515,20 @@ public:
         const State& state,
         const std::function<void(Vec3 point_G)>& sink) const;
 
+    /** Compute `numCurveSegmentSamples` equally-spaced points for each curve
+    segment along the path spanned by this cable and emit them to `sink`.
+    This can be useful for visualization purposes, where it can be important to
+    limit the amount of visualized path points for performance reasons.
+    State must be realized to Stage::Position.
+    @param state System State.
+    @param numCurveSegmentSamples The number of samples to take per curve
+                                  segment.
+    @param sink Where the path points (in ground frame) will be written to. **/
+    void calcResampledDecorativePathPoints(
+        const State& state,
+        int numCurveSegmentSamples,
+        const std::function<void(Vec3 point_G)>& sink) const;
+
     ///@}
 
     /** @name Curve segment computations */

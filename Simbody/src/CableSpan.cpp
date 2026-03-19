@@ -1615,17 +1615,6 @@ public:
         return station_G;
     }
 
-    //--------------------------------------------------------------------------
-    // Helper function: via point visualization
-    //--------------------------------------------------------------------------
-
-    void calcDecorativePathPoints(
-        const State& state,
-        const std::function<void(Vec3 point_G)>& sink) const
-    {
-        sink(getStation_G(state));
-    }
-
 private:
     //--------------------------------------------------------------------------
     // Data
@@ -2163,12 +2152,12 @@ public:
                 curve.calcDecorativePathPoints(state, sink);
             }
 
-            // Write the path points for the final via point in the cable
+            // Write the path point for the final via point in the cable
             // segment.
             if (cableSegment.getFinalViaPointIndex().isValid()) {
                 const ViaPoint& viaPoint = getViaPoint(
                     cableSegment.getFinalViaPointIndex());
-                viaPoint.calcDecorativePathPoints(state, sink);
+                sink(viaPoint.getStation_G(state));
             }
         }
 
@@ -2181,6 +2170,38 @@ public:
         CableSpanObstacleIndex ix,
         int numSamples,
         const std::function<void(Vec3 point_G)>& sink) const;
+
+    void calcResampledDecorativePathPoints(
+        const State& state,
+        int numCurveSegmentSamples,
+        const std::function<void(Vec3 point_G)>& sink) const
+    {
+        // Write the initial path point.
+        const CableSpanData::Position& dataPos = getDataPos(state);
+        sink(dataPos.originPoint_G);
+
+        // Write the path points for each cable segment.
+        for (CableSegmentIndex ix(0); ix < getNumCableSegments(); ++ix) {
+            const CableSegment& cableSegment = getCableSegment(ix);
+
+            // Write the path points for each obstacle in the cable segment.
+            for (ObstacleIndex ix : cableSegment.getObstacleIndexes()) {
+                const CurveSegment& curve = getObstacleCurveSegment(ix);
+                curve.calcResampledPoints(state, numCurveSegmentSamples, sink);
+            }
+
+            // Write the path point for the final via point in the cable
+            // segment.
+            if (cableSegment.getFinalViaPointIndex().isValid()) {
+                const ViaPoint& viaPoint = getViaPoint(
+                    cableSegment.getFinalViaPointIndex());
+                sink(viaPoint.getStation_G(state));
+            }
+        }
+
+        // Write the path's termination point.
+        sink(dataPos.terminationPoint_G);
+    }
 
     void calcDecorativeGeometryAndAppend(
         const State& state,
@@ -4764,6 +4785,15 @@ void CableSpan::calcDecorativePathPoints(
     const std::function<void(Vec3 point_G)>& sink) const
 {
     getImpl().calcDecorativePathPoints(state, sink);
+}
+
+void CableSpan::calcResampledDecorativePathPoints(
+    const State& state,
+    int numCurveSegmentSamples,
+    const std::function<void(Vec3 point_G)>& sink) const
+{
+    getImpl().calcResampledDecorativePathPoints(
+        state, numCurveSegmentSamples, sink);
 }
 
 Real CableSpan::calcCablePower(const State& state, Real tension) const
